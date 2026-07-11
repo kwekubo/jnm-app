@@ -1,0 +1,562 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Buffer } from "buffer";
+import * as FileSystem from "expo-file-system/legacy";
+
+import {
+  allCoursesSchema,
+  CourseMetadata,
+  courseMetaSchema,
+  storedAllCoursesSchema,
+  type CourseIndex,
+  type FilePointer,
+  type LessonData,
+  type StoredCourseIndex,
+} from "@/src/data/courseSchemas";
+import {
+  CourseInfo,
+  CourseName,
+  CourseNameSchema,
+  Quality,
+  UIColors,
+} from "@/src/types";
+import {
+  ensureObjectDir,
+  ensureRootObjectDir,
+  getLocalObjectPath,
+} from "../services/downloadManager";
+
+import jnmCoverWithText from "@/assets/courses/images/jnm-cover-stylized-with-text.png";
+import jnmCover from "@/assets/courses/images/jnm-cover-stylized.png";
+import { useQuery } from "@tanstack/react-query";
+
+import { COURSE_INDEX_URL } from "@/src/data/contentConfig";
+
+
+const COURSE_INDEX_STORAGE_KEY = "@course-index/all";
+const COURSE_INDEX_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+
+const courseInfoData: Record<CourseName, CourseInfo> = {
+  jnm: {
+    image: jnmCover,
+    imageWithText: jnmCoverWithText,
+    shortTitle: "Esperanto",
+    fullTitle: "Jen Nia Mondo",
+    courseType: "complete",
+    fallbackLessonCount: "25",
+    uiColors: {
+      // Palette drawn from the 1974 cover: near-navy night sky and pale
+      // halftone-blue Earth. Placeholder pending a proper design pass.
+      background: "#1c2e4a",
+      softBackground: "#d7e3ee",
+      text: "white",
+      backgroundAccent: "#101d31",
+    },
+    bundledFirstLesson: null,
+    bundledFirstLessonId: "jnm/jnm-l01",
+  },
+};
+
+const loadedInMemoryCourseMeta: Partial<Record<CourseName, CourseMetadata>> =
+  {};
+
+const loadedObjectMetadataLookup: Record<
+  string,
+  {
+    pointer: FilePointer; // for mime type, filesize
+
+    // don't love this structure -- maybe better to have a generic pointer? idk, pros and cons
+    course: CourseName;
+    lessonIndex: number;
+    quality: Quality;
+    recording: "lesson" | "dialogue";
+  }
+> = {};
+
+// best avoid reloading while the app is open -- keep things consistent
+let cachedInMemoryCourseIndex: CourseIndex | null = null;
+
+const normalizeCasBaseURL = (base: string) => base.replace(/\/$/, "");
+
+const validateIndex = (raw: any): CourseIndex | null => {
+  const parsed = allCoursesSchema.safeParse(raw);
+  if (!parsed.success) {
+    return null;
+  }
+
+  return {
+    ...parsed.data,
+    casBaseURL: normalizeCasBaseURL(parsed.data.casBaseURL),
+  };
+};
+
+type CachedCourseIndex = {
+  data: CourseIndex;
+  timestamp: number;
+};
+
+const readCachedCourseIndex = async (): Promise<CachedCourseIndex | null> => {
+  try {
+    const contents = await AsyncStorage.getItem(COURSE_INDEX_STORAGE_KEY);
+    if (!contents) {
+      return null;
+    }
+
+    const parsed = storedAllCoursesSchema.safeParse(JSON.parse(contents));
+    if (!parsed.success) {
+      return null;
+    }
+
+    const validated = validateIndex(parsed.data.data);
+    if (!validated) {
+      return null;
+    }
+
+    return {
+      data: validated,
+      timestamp: parsed.data.timestamp,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedCourseIndex = async (index: CourseIndex): Promise<void> => {
+  const payload: StoredCourseIndex = {
+    timestamp: Date.now(),
+    data: index,
+  };
+  await AsyncStorage.setItem(COURSE_INDEX_STORAGE_KEY, JSON.stringify(payload));
+};
+
+const fetchAndCacheCourseIndex = async (): Promise<CourseIndex> => {
+  const response = await fetch(COURSE_INDEX_URL);
+  if (!response.ok) {
+    throw new Error("Failed to fetch course index");
+  }
+
+  const json = (await response.json()) as CourseIndex;
+  const validated = validateIndex(json);
+  if (!validated) {
+    throw new Error("Invalid course index payload");
+  }
+
+  await writeCachedCourseIndex(validated);
+  cachedInMemoryCourseIndex = validated;
+
+  return validated;
+};
+
+const ensureCourseIndex = async (forceRemote = false): Promise<CourseIndex> => {
+  if (!forceRemote && cachedInMemoryCourseIndex) {
+    return cachedInMemoryCourseIndex;
+  }
+
+  if (!forceRemote) {
+    const cached = await readCachedCourseIndex();
+    if (cached) {
+      cachedInMemoryCourseIndex = cached.data;
+
+      const isFresh = Date.now() - cached.timestamp < COURSE_INDEX_TTL_MS;
+      if (isFresh) {
+        return cached.data;
+      }
+
+      void fetchAndCacheCourseIndex().catch((error) =>
+        console.warn("Failed to revalidate course index", error)
+      );
+      return cached.data;
+    }
+  }
+
+  const latest = await fetchAndCacheCourseIndex();
+  return latest;
+};
+
+export const getCASBaseURL = async (): Promise<string> => {
+  const index = await ensureCourseIndex();
+  return index.casBaseURL;
+};
+
+export const getCASObjectURL = async (
+  pointer: FilePointer
+): Promise<string> => {
+  const baseURL = await getCASBaseURL();
+  return `${baseURL}/${pointer.object}`;
+};
+
+const _saveLocalObject = async (
+  pointer: FilePointer,
+  data: Uint8Array
+): Promise<void> => {
+  // TODO move this to download manager
+  await ensureObjectDir(pointer);
+  const localPath = getLocalObjectPath(pointer);
+  await FileSystem.writeAsStringAsync(
+    localPath,
+    // bizarre
+    Buffer.from(data).toString("base64"),
+    { encoding: FileSystem.EncodingType.Base64 }
+  );
+};
+
+const readLocalObjectOrNull = async (
+  pointer: FilePointer
+): Promise<Uint8Array | null> => {
+  const localPath = getLocalObjectPath(pointer);
+  // console.log({ localPath });
+  const info = await FileSystem.getInfoAsync(localPath);
+  if (info.exists) {
+    const contents = await FileSystem.readAsStringAsync(localPath, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    return Uint8Array.from(Buffer.from(contents, "base64"));
+  } else {
+    return null;
+  }
+};
+
+export const readObject = async (
+  pointer: FilePointer,
+  // no need for forceRemote because it's content-addressed
+  { save = true }: { save?: boolean } = {}
+): Promise<Uint8Array | null> => {
+  const localData = await readLocalObjectOrNull(pointer);
+  if (localData) {
+    return localData;
+  }
+
+  const url = await getCASObjectURL(pointer);
+  const response = await fetch(url);
+  if (!response.ok) {
+    return null;
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  const data = new Uint8Array(arrayBuffer);
+  if (save) {
+    await _saveLocalObject(pointer, data);
+  }
+
+  return data;
+};
+
+const parseCourseMeta = (raw: any): CourseMetadata | null => {
+  const parsed = courseMetaSchema.safeParse(raw);
+  if (!parsed.success) {
+    return null;
+  }
+
+  return parsed.data;
+};
+
+const requireMeta = (course: CourseName): CourseMetadata => {
+  const meta = loadedInMemoryCourseMeta[course];
+  if (!meta) {
+    throw new Error(`Course metadata missing for ${course}`);
+  }
+  return meta;
+};
+
+const indexObjects = (course: CourseName, meta: CourseMetadata): void => {
+  for (let lessonIndex = 0; lessonIndex < meta.lessons.length; lessonIndex++) {
+    const lesson = meta.lessons[lessonIndex];
+    const register = (
+      variants: { hq: FilePointer; lq: FilePointer },
+      recording: "lesson" | "dialogue"
+    ) => {
+      loadedObjectMetadataLookup[variants.lq.object] = {
+        pointer: variants.lq,
+        course,
+        lessonIndex,
+        quality: "low",
+        recording,
+      };
+      loadedObjectMetadataLookup[variants.hq.object] = {
+        pointer: variants.hq,
+        course,
+        lessonIndex,
+        quality: "high",
+        recording,
+      };
+    };
+    // The teaching track. Every published lesson has one.
+    register(lesson.variants, "lesson");
+    // The standalone dialogue recording, for repeated listening.
+    if (lesson.dialogue) {
+      register(lesson.dialogue.variants, "dialogue");
+    }
+  }
+};
+
+export type LoadedObjectMetadata = {
+  pointer: FilePointer;
+  course: CourseName;
+  lessonIndex: number;
+  quality: Quality;
+  recording: "lesson" | "dialogue";
+};
+
+const CourseData = {
+  courseExists(course: CourseName): boolean {
+    return Boolean(courseInfoData[course]);
+  },
+
+  getCourseData(course: CourseName): CourseInfo {
+    return courseInfoData[course];
+  },
+
+  getCourseList(): CourseName[] {
+    return Object.keys(courseInfoData) as CourseName[];
+  },
+
+  getCourseShortTitle(course: CourseName): string {
+    return courseInfoData[course].shortTitle;
+  },
+
+  getCourseFullTitle(course: CourseName): string {
+    return courseInfoData[course].fullTitle;
+  },
+
+  getCourseType(course: CourseName): string {
+    return courseInfoData[course].courseType;
+  },
+
+  getCourseImage(course: CourseName) {
+    return courseInfoData[course].image;
+  },
+
+  getCourseImageWithText(course: CourseName) {
+    return courseInfoData[course].imageWithText;
+  },
+
+  getBundledFirstLesson(course: CourseName) {
+    return courseInfoData[course].bundledFirstLesson ?? null;
+  },
+
+  getBundledFirstLessonId(course: CourseName) {
+    return courseInfoData[course].bundledFirstLessonId ?? null;
+  },
+
+  getCourseUIColors(course: CourseName): UIColors {
+    return courseInfoData[course].uiColors;
+  },
+
+  getFallbackLessonCount(course: CourseName): string {
+    return courseInfoData[course].fallbackLessonCount;
+  },
+
+  isCourseMetadataLoaded(course: CourseName): boolean {
+    return Boolean(loadedInMemoryCourseMeta[course]);
+  },
+
+  getMetadataVersion(course: CourseName): number | null {
+    return loadedInMemoryCourseMeta[course]?.buildVersion ?? null;
+  },
+
+  async loadCourseMetadataIfDownloaded(
+    course: CourseName,
+    forceRemote: boolean = false
+  ): Promise<CourseMetadata | null> {
+    if (CourseData.isCourseMetadataLoaded(course)) {
+      return loadedInMemoryCourseMeta[course]!;
+    }
+
+    const courseIndex = await ensureCourseIndex(forceRemote);
+    const courseIndexEntry = courseIndex.courses.find(
+      (entry) => entry.id === course
+    );
+
+    if (!courseIndexEntry) {
+      throw new Error(`Course ${course} not found in index`);
+    }
+
+    await ensureRootObjectDir();
+
+    const metadataFilePointer = courseIndexEntry.meta;
+    // if the index changes and THEN we lose internet access, this fails, without the fallback we used to have
+    // but I can live with this
+    const metadataFile = await readLocalObjectOrNull(metadataFilePointer);
+
+    if (!metadataFile) {
+      return null;
+    }
+
+    const metadataString = Buffer.from(metadataFile).toString("utf-8");
+
+    const parsedMeta = parseCourseMeta(JSON.parse(metadataString));
+
+    if (!parsedMeta) {
+      throw new Error(`Invalid metadata for course ${course}`);
+    }
+
+    indexObjects(course, parsedMeta);
+
+    loadedInMemoryCourseMeta[course] = parsedMeta;
+
+    return parsedMeta;
+  },
+
+  async loadCourseMetadata(
+    course: CourseName,
+    forceRemote: boolean = false
+  ): Promise<CourseMetadata | null> {
+    const meta = await CourseData.loadCourseMetadataIfDownloaded(
+      course,
+      forceRemote
+    );
+
+    if (meta) {
+      return meta;
+    }
+
+    const courseIndex = await ensureCourseIndex(forceRemote);
+    const courseIndexEntry = courseIndex.courses.find(
+      (entry) => entry.id === course
+    );
+
+    if (!courseIndexEntry) {
+      throw new Error(`Course ${course} not found in index`);
+    }
+
+    const metadataFilePointer = courseIndexEntry.meta;
+    await readObject(metadataFilePointer, {
+      save: true,
+    });
+
+    return await CourseData.loadCourseMetadataIfDownloaded(course, false);
+  },
+
+  async loadAllLocallyDownloadedCourseMetadata(): Promise<void> {
+    const courseIndex = await ensureCourseIndex();
+
+    await Promise.all(
+      courseIndex.courses.map(async (entry) => {
+        // new courses could be in the remote
+        const courseId = CourseNameSchema.safeParse(entry.id);
+        if (!courseId.success) {
+          return;
+        }
+        await CourseData.loadCourseMetadataIfDownloaded(courseId.data);
+      })
+    );
+  },
+
+  getLessonData(course: CourseName, lesson: number): LessonData {
+    return requireMeta(course).lessons[lesson];
+  },
+
+  getLessonId(course: CourseName, lesson: number): string {
+    return CourseData.getLessonData(course, lesson).id;
+  },
+
+  getLessonNumberForId(course: CourseName, lessonId: string): number | null {
+    const meta = requireMeta(course);
+    const index = meta.lessons.findIndex((l) => l.id === lessonId);
+    return index === -1 ? null : index;
+  },
+
+  getLessonPointer(
+    course: CourseName,
+    lesson: number,
+    quality: Quality
+  ): FilePointer {
+    const variants = CourseData.getLessonData(course, lesson).variants;
+    return quality === "high" ? variants.hq : variants.lq;
+  },
+
+  getLessonPointersAllVariants(
+    course: CourseName,
+    lesson: number
+  ): FilePointer[] {
+    return Object.values(CourseData.getLessonData(course, lesson).variants);
+  },
+
+  async getLessonUrl(
+    course: CourseName,
+    lesson: number,
+    quality: Quality
+  ): Promise<string> {
+    const pointer = CourseData.getLessonPointer(course, lesson, quality);
+    return await getCASObjectURL(pointer);
+  },
+
+  getLessonIndices(course: CourseName): number[] {
+    return requireMeta(course).lessons.map((_, idx) => idx);
+  },
+
+  getLessonTitle(course: CourseName, lesson: number): string {
+    return CourseData.getLessonData(course, lesson).title;
+  },
+
+  getLessonDuration(course: CourseName, lesson: number): number {
+    return CourseData.getLessonData(course, lesson).duration;
+  },
+
+  // --- Jen Nia Mondo additions -------------------------------------------
+
+  /** Published volume this lesson belongs to (1 or 2). */
+  getLessonPart(course: CourseName, lesson: number): number {
+    return CourseData.getLessonData(course, lesson).part;
+  },
+
+  /** The standalone dialogue recording, if the lesson has one. */
+  getLessonDialogue(course: CourseName, lesson: number) {
+    return CourseData.getLessonData(course, lesson).dialogue;
+  },
+
+  /** Pointer to the lesson's structured written content, if published. */
+  getLessonContentPointer(course: CourseName, lesson: number) {
+    return CourseData.getLessonData(course, lesson).content;
+  },
+
+  getLessonSizeInBytes(
+    course: CourseName,
+    lesson: number,
+    quality: Quality
+  ): number {
+    return CourseData.getLessonPointer(course, lesson, quality).filesize;
+  },
+
+  getLessonMimeType(
+    course: CourseName,
+    lesson: number,
+    quality: Quality
+  ): string {
+    return CourseData.getLessonPointer(course, lesson, quality).mimeType;
+  },
+
+  getNextLesson(course: CourseName, lesson: number): number | null {
+    const meta = requireMeta(course);
+    return lesson + 1 < meta.lessons.length ? lesson + 1 : null;
+  },
+
+  getPreviousLesson(_: CourseName, lesson: number): number | null {
+    return lesson - 1 >= 0 ? lesson - 1 : null;
+  },
+
+  getLoadedObjectMetadata(objectId: string): LoadedObjectMetadata {
+    if (!(objectId in loadedObjectMetadataLookup)) {
+      throw new Error(`Object metadata not found for ${objectId}`);
+    }
+    return loadedObjectMetadataLookup[objectId];
+  },
+
+  getAllLoadedObjectIds(): string[] {
+    return Object.keys(loadedObjectMetadataLookup);
+  },
+};
+
+export const useCourseMetadata = (
+  course: CourseName
+): CourseMetadata | null => {
+  return (
+    useQuery({
+      queryKey: ["@local", "course-data", "metadata", course],
+      queryFn: async () => {
+        return await CourseData.loadCourseMetadata(course);
+      },
+    }).data ?? null
+  );
+};
+
+export default CourseData;
