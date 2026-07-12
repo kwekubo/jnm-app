@@ -194,6 +194,9 @@ const _download = async (filePointer: FilePointer) => {
   invalidate(filePointer);
 
   const stagingDestination = stagingPath(filePointer);
+  new Directory(
+    stagingDestination.slice(0, stagingDestination.lastIndexOf("/"))
+  ).create({ intermediates: true, idempotent: true });
   const url = await getCASObjectURL(filePointer);
   const destinationDir = new Directory(
     getLocalObjectContainingDir(filePointer)
