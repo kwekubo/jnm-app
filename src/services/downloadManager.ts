@@ -460,10 +460,21 @@ export function useDownloadCount(course: CourseName) {
 
 export const CourseDownloadManager = {
   async requestDownloads(course: CourseName, lessons: number[]) {
-    const quality = await getPreferenceWithDefault(PreferenceDownloadQuality);
-    const pointers = lessons.map((lesson) =>
-      CourseData.getLessonPointer(course, lesson, quality)
-    );
+const quality = await getPreferenceWithDefault(PreferenceDownloadQuality);
+    const pointers = lessons.flatMap((lesson) => {
+      const lessonPointers = [
+        CourseData.getLessonPointer(course, lesson, quality),
+      ];
+      const dialogue = CourseData.getLessonDialogue(course, lesson);
+      if (dialogue) {
+        lessonPointers.push(dialogue.variants[quality] ?? dialogue.variants.hq);
+      }
+      const content = CourseData.getLessonContentPointer(course, lesson);
+      if (content) {
+        lessonPointers.push(content);
+      }
+      return lessonPointers;
+    });
 
     lessons.forEach((lesson) => {
       log({
@@ -481,13 +492,21 @@ export const CourseDownloadManager = {
     return await CourseDownloadManager.requestDownloads(course, [lesson]);
   },
 
-  async unrequestDownload(course: CourseName, lesson: number) {
-    const quality = await getPreferenceWithDefault(PreferenceDownloadQuality);
-    // TODO: all quality? TODO: what do when change request quality? maybe keep the old intents?
-    const pointer = CourseData.getLessonPointer(course, lesson, quality);
-
-    return await DownloadManager.unrequestDownload(pointer);
-  },
+async unrequestDownload(course: CourseName, lesson: number) {
+      const quality = await getPreferenceWithDefault(PreferenceDownloadQuality);
+      // TODO: all quality? TODO: what do when change request quality? maybe keep the old intents?
+      const pointer = CourseData.getLessonPointer(course, lesson, quality);
+      const extras: FilePointer[] = [];
+      const dialogue = CourseData.getLessonDialogue(course, lesson);
+      if (dialogue) {
+        extras.push(dialogue.variants[quality] ?? dialogue.variants.hq);
+      }
+      const content = CourseData.getLessonContentPointer(course, lesson);
+      if (content) {
+        extras.push(content);
+      }
+      return await DownloadManager.unrequestDownloads([pointer, ...extras]);
+    },
 
   async getDownloadStatus(
     course: CourseName,

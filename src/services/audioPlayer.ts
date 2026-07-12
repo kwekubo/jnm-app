@@ -15,7 +15,9 @@ import TrackPlayer, {
   type AddTrack,
 } from "react-native-track-player";
 
-import CourseData from "@/src/data/courseData";
+import { File } from "expo-file-system";
+
+import CourseData, { getCASObjectURL } from "@/src/data/courseData";
 import {
   CourseDownloadManager,
   getLocalObjectPath,
@@ -36,6 +38,7 @@ type AudioError = {
 };
 
 export type LessonAudioControls = {
+  activeKind: "lesson" | "dialogue";
   ready: boolean;
   playing: boolean;
   buffering: boolean;
@@ -81,6 +84,7 @@ const BASE_UPDATE_OPTIONS: UpdateOptions = {
 type LessonTrack = AddTrack & {
   course: CourseName;
   lesson: number;
+  kind: "lesson" | "dialogue";
 };
 
 let playerSetupPromise: Promise<void> | null = null;
@@ -169,50 +173,73 @@ const buildLessonQueue = async (
     course
   ) as LessonTrack["artwork"];
 
-  const tracks = await Promise.all(
-    lessons.map(async (lessonNumber, index) => {
-      let uri: string | number;
-      const downloadStatus = await CourseDownloadManager.getDownloadStatus(
-        course,
-        lessonNumber
+const tracks: LessonTrack[] = [];
+  let targetTrackIndex = 0;
+
+  for (const lessonNumber of lessons) {
+    let uri: string | number;
+    const downloadStatus = await CourseDownloadManager.getDownloadStatus(
+      course,
+      lessonNumber
+    );
+    const isDownloaded = downloadStatus === "downloaded";
+
+    if (isDownloaded) {
+      uri = getLocalObjectPath(
+        await CourseDownloadManager.getLessonPointer(course, lessonNumber)
       );
-      const isDownloaded = downloadStatus === "downloaded";
+    } else {
+      const bundled =
+        lessonNumber === 0 && Platform.OS === "ios"
+          ? CourseData.getBundledFirstLesson(course)
+          : null;
+      uri =
+        bundled ??
+        (await CourseData.getLessonUrl(course, lessonNumber, quality));
+    }
 
-      if (isDownloaded) {
-        uri = getLocalObjectPath(
-          await CourseDownloadManager.getLessonPointer(course, lessonNumber)
-        );
-      } else {
-        const bundled =
-          lessonNumber === 0 && Platform.OS === "ios"
-            ? CourseData.getBundledFirstLesson(course)
-            : null;
-        uri =
-          bundled ??
-          (await CourseData.getLessonUrl(course, lessonNumber, quality));
-      }
+    if (lessonNumber === targetLesson) {
+      targetTrackIndex = tracks.length;
+    }
 
-      return {
-        id: CourseData.getLessonId(course, lessonNumber),
-        url: uri as LessonTrack["url"],
-        contentType: CourseData.getLessonMimeType(
-          course,
-          lessonNumber,
-          quality
-        ),
-        title: CourseData.getLessonTitle(course, lessonNumber),
+    tracks.push({
+      id: CourseData.getLessonId(course, lessonNumber),
+      url: uri as LessonTrack["url"],
+      contentType: CourseData.getLessonMimeType(course, lessonNumber, quality),
+      title: CourseData.getLessonTitle(course, lessonNumber),
+      artist: "Language Transfer",
+      artwork,
+      duration: CourseData.getLessonDuration(course, lessonNumber),
+      course,
+      lesson: lessonNumber,
+      kind: "lesson",
+    });
+
+    const dialogue = CourseData.getLessonDialogue(course, lessonNumber);
+    if (dialogue) {
+      const dialoguePointer =
+        dialogue.variants[quality] ?? dialogue.variants.hq;
+      const localPath = getLocalObjectPath(dialoguePointer);
+      const dialogueUri = new File(localPath).exists
+        ? localPath
+        : await getCASObjectURL(dialoguePointer);
+
+      tracks.push({
+        id: `${CourseData.getLessonId(course, lessonNumber)}::dialogue`,
+        url: dialogueUri as LessonTrack["url"],
+        contentType: dialoguePointer.mimeType,
+        title: `${CourseData.getLessonTitle(course, lessonNumber)} — Dialogo`,
         artist: "Language Transfer",
         artwork,
-        duration: CourseData.getLessonDuration(course, lessonNumber),
+        duration: dialogue.duration,
         course,
         lesson: lessonNumber,
-      };
-    })
-  );
+        kind: "dialogue",
+      });
+    }
+  }
 
-  // console.log(tracks);
-
-  return { tracks, targetIndex };
+  return { tracks, targetIndex: targetTrackIndex };
 };
 
 export const useLessonAudio = (
@@ -347,6 +374,10 @@ export const useLessonAudio = (
       return;
     }
 
+if (activeTrack?.kind === "dialogue") {
+      return;
+    }
+
     const now = Date.now();
     if (now - lastPersistTimeRef.current < PROGRESS_PERSIST_INTERVAL_MS) {
       return;
@@ -358,6 +389,7 @@ export const useLessonAudio = (
     course,
     lesson,
     isCurrentLessonActive,
+    activeTrack?.kind,
     playbackStatus,
     progress.position,
   ]);
@@ -429,14 +461,16 @@ export const useLessonAudio = (
       if (!playerReady || !isCurrentLessonActive) {
         return;
       }
-      await TrackPlayer.seekTo(seconds);
-      lastPersistTimeRef.current = Date.now();
-      await updateProgressForLesson(course, lesson, seconds);
+await TrackPlayer.seekTo(seconds);
+      if (activeTrack?.kind !== "dialogue") {
+        lastPersistTimeRef.current = Date.now();
+        await updateProgressForLesson(course, lesson, seconds);
+      }
       if (options?.log !== false) {
         logPlayerEvent("change_position", seconds);
       }
     },
-    [course, lesson, isCurrentLessonActive, logPlayerEvent, playerReady]
+    [course, lesson, isCurrentLessonActive, activeTrack?.kind, logPlayerEvent, playerReady]
   );
 
   const skipBack = useCallback(
@@ -454,11 +488,20 @@ export const useLessonAudio = (
   const error =
     loadError ?? (playbackError ? { message: playbackError.message } : null);
 
+const activeKind: "lesson" | "dialogue" =
+    activeTrack?.kind === "dialogue" ? "dialogue" : "lesson";
   const position = isCurrentLessonActive ? progress.position : 0;
   const resolvedDuration =
-    duration > 0 ? duration : isCurrentLessonActive ? progress.duration : 0;
+    activeKind === "dialogue"
+      ? progress.duration || activeTrack?.duration || 0
+      : duration > 0
+        ? duration
+        : isCurrentLessonActive
+          ? progress.duration
+          : 0;
 
   return {
+    activeKind,
     ready: Boolean(
       playerReady &&
         isCurrentLessonActive &&
@@ -479,4 +522,22 @@ export const useLessonAudio = (
     seekTo,
     skipBack,
   };
+};
+
+export const playLessonDialogue = async (
+  course: CourseName,
+  lesson: number
+): Promise<boolean> => {
+  const queue = (await TrackPlayer.getQueue()) as LessonTrack[];
+  const index = queue.findIndex(
+    (track) =>
+      track.kind === "dialogue" &&
+      trackMatchesLesson(track, course, lesson)
+  );
+  if (index === -1) {
+    return false;
+  }
+  await TrackPlayer.skip(index);
+  await TrackPlayer.play();
+  return true;
 };

@@ -15,9 +15,6 @@ import {
   View,
 } from "react-native";
 
-import LessonContentView, {
-  type ContentTab,
-} from "@/src/components/listen/LessonContentView";
 import ListenScrubber from "@/src/components/listen/ListenScrubber";
 import CourseData from "@/src/data/courseData";
 import {
@@ -25,11 +22,7 @@ import {
   useCurrentCourseColors,
   useCurrentLesson,
 } from "@/src/hooks/useCourseLessonData";
-import {
-  playLessonDialogue,
-  stopLessonAudio,
-  useLessonAudio,
-} from "@/src/services/audioPlayer";
+import { stopLessonAudio, useLessonAudio } from "@/src/services/audioPlayer";
 import {
   CourseDownloadManager,
   useLessonDownloadStatus,
@@ -37,16 +30,6 @@ import {
 import { markLessonFinished } from "@/src/storage/persistence";
 import { useLogger } from "@/src/utils/log";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-type Tab = "listen" | ContentTab;
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "listen", label: "Listen" },
-  { key: "dialogue", label: "Dialogue" },
-  { key: "vocabulary", label: "Vocabulary" },
-  { key: "notes", label: "Notes" },
-  { key: "exercises", label: "Exercises" },
-];
 
 const ListenBody = () => {
   const course = useCurrentCourse();
@@ -58,13 +41,12 @@ const ListenBody = () => {
     null
   );
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [tab, setTab] = useState<Tab>("listen");
   const router = useRouter();
   const latestPositionRef = useRef(0);
   const sheetAnim = useRef(new Animated.Value(0)).current;
 
   const lessonTitle = CourseData.getLessonTitle(course, lesson);
-  const hasDialogueAudio = !!CourseData.getLessonDialogue(course, lesson);
+  const duration = CourseData.getLessonDuration(course, lesson);
   const colors = useCurrentCourseColors();
   const log = useLogger({
     surface: "listen_screen",
@@ -177,26 +159,6 @@ const ListenBody = () => {
     router.back();
   };
 
-  const handlePlayDialogue = async () => {
-    log({
-      action: "play_dialogue",
-      surface: "dialogue_tab",
-    });
-    await playLessonDialogue(course, lesson);
-  };
-
-  const selectTab = (next: Tab) => {
-    if (next === tab) {
-      return;
-    }
-    log({
-      action: "select_lesson_tab",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tab: next as any,
-    });
-    setTab(next);
-  };
-
   if (controls.error) {
     return (
       <View style={styles.errorContainer}>
@@ -205,127 +167,60 @@ const ListenBody = () => {
     );
   }
 
-  const compact = tab !== "listen";
-
   return (
     <View style={[styles.body, { backgroundColor: colors?.background }]}>
-      <View style={styles.tabBar}>
-        {TABS.map(({ key, label }) => {
-          const active = key === tab;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => selectTab(key)}
-              style={styles.tabButton}
-              android_ripple={{ color: "rgba(255,255,255,0.15)" }}
-            >
-              <Text
-                style={[
-                  styles.tabLabel,
-                  { color: colors?.text },
-                  !active && styles.tabLabelInactive,
-                ]}
-              >
-                {label}
-              </Text>
-              <View
-                style={[
-                  styles.tabUnderline,
-                  active && { backgroundColor: colors?.text },
-                ]}
-              />
-            </Pressable>
-          );
-        })}
+      <View style={styles.lessonName}>
+        <Text style={[styles.courseTitle, { color: colors?.text }]}>
+          {CourseData.getCourseShortTitle(course)}
+        </Text>
+        <Text style={[styles.lesson, { color: colors?.text }]}>
+          {lessonTitle}
+        </Text>
       </View>
 
-      {tab === "listen" ? (
-        <View style={styles.listenMiddle}>
-          <View style={styles.lessonName}>
-            <Text style={[styles.courseTitle, { color: colors?.text }]}>
-              {CourseData.getCourseShortTitle(course)}
-            </Text>
-            <Text style={[styles.lesson, { color: colors?.text }]}>
-              {lessonTitle}
-            </Text>
-          </View>
-        </View>
-      ) : (
-        <LessonContentView
-          course={course}
-          lesson={lesson}
-          tab={tab}
-          textColor={colors?.text ?? "#ffffff"}
-          hasDialogueAudio={hasDialogueAudio}
-          onPlayDialogue={handlePlayDialogue}
-        />
-      )}
+      <View style={styles.icons}>
+        <Pressable
+          onPress={() => controls.skipBack()}
+          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+        >
+          <MaterialIcons name="replay-10" size={42} color={colors?.text} />
+        </Pressable>
 
-      <View style={[styles.controls, compact && styles.controlsCompact]}>
-        <View style={styles.icons}>
+        {controls.ready ? (
           <Pressable
-            onPress={() => controls.skipBack()}
+            onPress={() => controls.toggle()}
             android_ripple={{
               color: "rgba(255,255,255,0.2)",
               borderless: true,
             }}
+            style={styles.playButton}
+            aria-label={controls.playing ? "Pause" : "Play"}
           >
-            <MaterialIcons
-              name="replay-10"
-              size={compact ? 30 : 42}
+            <FontAwesome5
+              name={controls.playing ? "pause" : "play"}
+              size={64}
               color={colors?.text}
             />
           </Pressable>
+        ) : (
+          <ActivityIndicator size={64} color={colors?.text} />
+        )}
 
-          {controls.ready ? (
-            <Pressable
-              onPress={() => controls.toggle()}
-              android_ripple={{
-                color: "rgba(255,255,255,0.2)",
-                borderless: true,
-              }}
-              style={styles.playButton}
-              aria-label={controls.playing ? "Pause" : "Play"}
-            >
-              <FontAwesome5
-                name={controls.playing ? "pause" : "play"}
-                size={compact ? 44 : 64}
-                color={colors?.text}
-              />
-            </Pressable>
-          ) : (
-            <ActivityIndicator size={compact ? 44 : 64} color={colors?.text} />
-          )}
-
-          <Pressable
-            onPress={openSheet}
-            android_ripple={{
-              color: "rgba(255,255,255,0.2)",
-              borderless: true,
-            }}
-          >
-            <MaterialIcons
-              name="settings"
-              size={compact ? 30 : 42}
-              color={colors?.text}
-            />
-          </Pressable>
-        </View>
-
-        {controls.activeKind === "dialogue" ? (
-          <Text style={[styles.nowPlayingHint, { color: colors?.text }]}>
-            Dialogue
-          </Text>
-        ) : null}
-
-        <ListenScrubber
-          course={course}
-          lesson={lesson}
-          position={controls.position}
-          duration={controls.duration}
-          seekTo={controls.seekTo}
-        />
+        <Pressable
+          onPress={openSheet}
+          android_ripple={{ color: "rgba(255,255,255,0.2)", borderless: true }}
+        >
+          <MaterialIcons name="settings" size={42} color={colors?.text} />
+        </Pressable>
       </View>
+
+      <ListenScrubber
+        course={course}
+        lesson={lesson}
+        position={controls.position}
+        duration={duration}
+        seekTo={controls.seekTo}
+      />
 
       {sheetOpen ? (
         <Modal
@@ -443,38 +338,10 @@ const SheetRow = ({
 const styles = StyleSheet.create({
   body: {
     flex: 1,
-    paddingBottom: 32,
-  },
-  tabBar: {
-    flexDirection: "row",
-    paddingHorizontal: 8,
-  },
-  tabButton: {
-    flex: 1,
     alignItems: "center",
-    paddingTop: 6,
-  },
-  tabLabel: {
-    fontSize: 13.5,
-    fontWeight: "600",
-    paddingVertical: 8,
-  },
-  tabLabelInactive: {
-    opacity: 0.55,
-    fontWeight: "400",
-  },
-  tabUnderline: {
-    height: 2,
-    alignSelf: "stretch",
-    marginHorizontal: 6,
-    borderRadius: 1,
-    backgroundColor: "transparent",
-  },
-  listenMiddle: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-around",
     paddingHorizontal: 24,
+    paddingBottom: 32,
   },
   lessonName: {
     alignItems: "center",
@@ -485,30 +352,15 @@ const styles = StyleSheet.create({
   },
   lesson: {
     fontSize: 32,
-    textAlign: "center",
-  },
-  controls: {
-    paddingHorizontal: 24,
-    paddingTop: 18,
-  },
-  controlsCompact: {
-    paddingTop: 10,
   },
   icons: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     width: "100%",
-    marginBottom: 8,
   },
   playButton: {
     paddingHorizontal: 20,
-  },
-  nowPlayingHint: {
-    alignSelf: "center",
-    fontSize: 12,
-    opacity: 0.7,
-    marginBottom: 2,
   },
   errorContainer: {
     flex: 1,
