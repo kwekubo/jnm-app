@@ -228,7 +228,7 @@ const tracks: LessonTrack[] = [];
         id: `${CourseData.getLessonId(course, lessonNumber)}::dialogue`,
         url: dialogueUri as LessonTrack["url"],
         contentType: dialoguePointer.mimeType,
-        title: `${CourseData.getLessonTitle(course, lessonNumber)} — Dialogo`,
+        title: `${CourseData.getLessonTitle(course, lessonNumber)} - Dialogo`,
         artist: "Language Transfer",
         artwork,
         duration: dialogue.duration,

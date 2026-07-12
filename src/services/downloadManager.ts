@@ -260,15 +260,23 @@ const _download = async (filePointer: FilePointer) => {
 };
 
 const getLocalObjectContainingDir = (pointer: ObjectPointer): string => {
-  const objectHash = pointer.object;
-  const prefix = objectHash.substring(0, 2);
+  const objectName = pointer.object;
+  const slash = objectName.lastIndexOf("/");
+  if (slash !== -1) {
+    // Namespaced keys (e.g. "audio/01_....mp3") mirror their path.
+    return `${OBJECT_STORAGE_DIR}/${objectName.substring(0, slash)}`;
+  }
+  // Flat content-hash keys shard by their first two characters.
+  const prefix = objectName.substring(0, 2);
   return `${OBJECT_STORAGE_DIR}/${prefix}`;
 };
 
 export const getLocalObjectPath = (pointer: ObjectPointer): string => {
-  const objectHash = pointer.object;
+  const objectName = pointer.object;
+  const slash = objectName.lastIndexOf("/");
+  const rest =
+    slash !== -1 ? objectName.substring(slash + 1) : objectName.substring(2);
   const containingDir = getLocalObjectContainingDir(pointer);
-  const rest = objectHash.substring(2);
 
   return `${containingDir}/${rest}`;
 };

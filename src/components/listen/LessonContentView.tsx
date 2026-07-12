@@ -125,18 +125,7 @@ const DialogueBlock = ({
           ))}
         </View>
       ))}
-      {hasDialogueAudio && onPlayDialogue ? (
-        <Pressable
-          onPress={onPlayDialogue}
-          style={[styles.dialogueButton, { borderColor: p.text }]}
-          android_ripple={{ color: "rgba(255,255,255,0.15)" }}
-        >
-          <FontAwesome5 name="headphones" size={16} color={p.text} />
-          <Text style={[styles.dialogueButtonText, { color: p.text }]}>
-            Listen to the dialogue
-          </Text>
-        </Pressable>
-      ) : null}
+      
     </View>
   );
 };
