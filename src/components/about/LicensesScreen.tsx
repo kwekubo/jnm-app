@@ -3,7 +3,7 @@ import { SafeAreaView, StyleSheet } from 'react-native';
 import WebView from 'react-native-webview';
 import * as Device from 'expo-device';
 
-const LICENSE_URL = 'https://downloads.languagetransfer.org/licenses/NOTICE';
+const LICENSE_URL = 'https://jnm.esperanto.org.uk/licenses.html';
 
 const LicensesScreen = () => {
   const versionTag = Device.osName ? `${Device.osName}-${Device.osVersion}` : 'unknown';

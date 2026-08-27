@@ -33,6 +33,7 @@ const lessonWireSchema = z.object({
     dialogue: audioPartSchema.nullable(),
   }),
   content: filePointerSchema.nullable(),
+  illustrations: z.array(filePointerSchema).default([]),
 });
 
 // ---------------------------------------------------------------------------
@@ -68,6 +69,7 @@ export const courseMetaSchema = z
               part: l.part,
               dialogue: l.audio.dialogue,
               content: l.content,
+              illustrations: l.illustrations,
             },
           ]
     ),

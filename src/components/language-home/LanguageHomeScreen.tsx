@@ -76,7 +76,7 @@ const LanguageHomeScreen = () => {
         {showWarning ? (
           <Text style={styles.warningText}>
             If this screen does not load, check your Internet connection or try
-            reinstalling the Language Transfer app.
+            reinstalling the Jen Nia Mondo app.
           </Text>
         ) : null}
       </View>
@@ -103,11 +103,11 @@ const LanguageHomeScreen = () => {
         }),
     },
     {
-      label: "Visit languagetransfer.org",
+      label: "Visit esperanto.org.uk",
       icon: "link",
       action: () => {
         log({ action: "visit_website" });
-        Linking.openURL("https://www.languagetransfer.org/");
+        Linking.openURL("https://www.esperanto.org.uk/");
       },
     },
   ];

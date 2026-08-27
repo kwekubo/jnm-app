@@ -7,6 +7,7 @@ import {
   Alert,
   Animated,
   Easing,
+  Image,
   Linking,
   Modal,
   Pressable,
@@ -19,6 +20,8 @@ import LessonContentView, {
   type ContentTab,
 } from "@/src/components/listen/LessonContentView";
 import ListenScrubber from "@/src/components/listen/ListenScrubber";
+import { useLessonContent } from "@/src/hooks/useLessonContent";
+import { contentAssetUrl } from "@/src/utils/contentAssets";
 import CourseData from "@/src/data/courseData";
 import {
   useCurrentCourse,
@@ -64,6 +67,10 @@ const ListenBody = () => {
   const sheetAnim = useRef(new Animated.Value(0)).current;
 
   const lessonTitle = CourseData.getLessonTitle(course, lesson);
+  const { content } = useLessonContent(course, lesson);
+  const miniTitle = /^leciono/i.test(lessonTitle)
+    ? lessonTitle
+    : `Leciono ${lesson} — ${lessonTitle}`;
   const hasDialogueAudio = !!CourseData.getLessonDialogue(course, lesson);
   const colors = useCurrentCourseColors();
   const log = useLogger({
@@ -241,6 +248,14 @@ const ListenBody = () => {
 
       {tab === "listen" ? (
         <View style={styles.listenMiddle}>
+          {content?.illustration ? (
+            <Image
+              source={{ uri: contentAssetUrl(content.illustration.asset) }}
+              style={styles.listenIllustration}
+              resizeMode="contain"
+              accessibilityLabel={content.illustration.alt}
+            />
+          ) : null}
           <View style={styles.lessonName}>
             <Text style={[styles.courseTitle, { color: colors?.text }]}>
               {CourseData.getCourseShortTitle(course)}
@@ -262,6 +277,11 @@ const ListenBody = () => {
       )}
 
       <View style={[styles.controls, compact && styles.controlsCompact]}>
+        {compact ? (
+          <Text style={[styles.miniLessonTitle, { color: colors?.text }]}>
+            {miniTitle}
+          </Text>
+        ) : null}
         <View style={styles.icons}>
           <Pressable
             onPress={() => controls.skipBack()}
@@ -493,6 +513,17 @@ const styles = StyleSheet.create({
   },
   controlsCompact: {
     paddingTop: 10,
+  },
+  miniLessonTitle: {
+    alignSelf: "center",
+    fontSize: 12,
+    opacity: 0.75,
+    marginBottom: 6,
+  },
+  listenIllustration: {
+    width: "92%",
+    height: "52%",
+    marginBottom: 20,
   },
   icons: {
     flexDirection: "row",

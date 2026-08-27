@@ -13,7 +13,7 @@ import {
 
 import LanguageButton from "@/src/components/language-selector/LanguageButton";
 import { SafeAreaView, useSafeAreaFrame } from "react-native-safe-area-context";
-import logo from "../../../legacy/resources/LT-logo-text.png";
+import logo from "../../../legacy/resources/jnm-masthead.png";
 
 const SCREEN_HEIGHT = Dimensions.get("screen").height;
 const HEADER_IMAGE_HEIGHT = 0.4 * SCREEN_HEIGHT;
@@ -74,7 +74,7 @@ const LanguageSelector = () => {
               source={logo}
               style={styles.headerImage}
               resizeMode="contain"
-              accessibilityLabel="Language Transfer"
+              accessibilityLabel="Jen Nia Mondo"
             />
           </Animated.View>
 

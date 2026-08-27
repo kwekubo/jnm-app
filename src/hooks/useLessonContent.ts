@@ -55,3 +55,35 @@ export const useLessonContent = (course: CourseName, lesson: number) => {
     refetch: query.refetch,
   };
 };
+
+// ---------------------------------------------------------------------------
+// Illustration URIs for a lesson, in display order: [0] is the header
+// vignette, the rest are extras (labelled diagrams, fable engravings).
+// Local object storage wins when the lesson has been downloaded; otherwise
+// URLs on the content server. Empty array while loading or when a lesson
+// has no illustrations.
+// ---------------------------------------------------------------------------
+
+export const useLessonIllustrationUris = (
+  course: CourseName,
+  lesson: number
+): string[] => {
+  const query = useQuery({
+    queryKey: ["lessonIllustrations", course, lesson],
+    queryFn: async () => {
+      const pointers = CourseData.getLessonIllustrations(course, lesson);
+      return Promise.all(
+        pointers.map(async (pointer) => {
+          const localPath = getLocalObjectPath(pointer);
+          if (new File(localPath).exists) {
+            return localPath;
+          }
+          return await getCASObjectURL(pointer);
+        })
+      );
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return query.data ?? [];
+};

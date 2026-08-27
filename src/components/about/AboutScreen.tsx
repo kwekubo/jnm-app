@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 
-type Section = "Language Transfer" | "Privacy" | "LT App";
 type IconName = ComponentProps<typeof FontAwesome5>["name"];
 
 const ICON_SIZE = 24;
@@ -26,11 +25,20 @@ const Icon = ({
   size?: number;
 }) => <FontAwesome5 name={name} size={size} />;
 
+// React Native has no <i>, <b> or <br>. Use these instead:
+//   <I>...</I> for italic, <B>...</B> for bold, {"\n"} for a line break.
+const I = ({ children }: { children: ReactNode }) => (
+  <Text style={styles.italic}>{children}</Text>
+);
+const B = ({ children }: { children: ReactNode }) => (
+  <Text style={styles.bold}>{children}</Text>
+);
+
 const SectionCard = ({
   title,
   children,
 }: {
-  title: Section;
+  title: string;
   children: ReactNode;
 }) => (
   <View>
@@ -45,88 +53,27 @@ const AboutScreen = () => {
     surface: "about",
   });
 
-  // TODO: get this from the build environment
-  const donationLinksNotAllowedBecauseGooglePlayIsAStinkyPooPoo = true;
   const appVersion = Constants.expoConfig?.version ?? "unknown";
 
   return (
     <ScrollView style={styles.body} contentContainerStyle={styles.container}>
       <View style={styles.sectionStack}>
-        <SectionCard title="Language Transfer">
+        <SectionCard title="Jen Nia Mondo">
           <Text style={styles.bodyText}>
-            Language Transfer audio courses capture real life learning
-            experiences in which you can participate fully, wherever you are in
-            the world! Just engage, pause, think and answer out loud, the rest
-            will take care of itself!
+            Jen Nia Mondo is an introductory series of lessons in Esperanto —
+            the living language which aims to solve the world&apos;s language
+            problem by becoming a second language, neutral and simple, for all
+            mankind.
           </Text>
 
-          {donationLinksNotAllowedBecauseGooglePlayIsAStinkyPooPoo ? (
-            <>
-              <Text style={[styles.bodyText, styles.bodyTextAboveButton]}>
-                Language Transfer is a unique project in more ways than one.
-                Learn more about Language Transfer here:
-              </Text>
-            </>
-          ) : (
-            <>
-              <Text style={styles.bodyText}>
-                Language Transfer is totally free, developed by Mihalis
-                Eleftheriou. There’s no LT team, though many volunteers have
-                helped along the way.
-              </Text>
-
-              <Text style={styles.bodyText}>
-                The free model reflects a desire to play a cooperative and
-                caring role in society, rather than a competitive one.
-              </Text>
-
-              <Text style={[styles.bodyText, styles.bodyTextAboveButton]}>
-                Contributions from individuals comprise 100% of Language
-                Transfer’s funding. If Language Transfer has helped you, and you
-                are able, please consider contributing to the project.
-              </Text>
-
-              <View style={styles.additionalButton}>
-                <TouchableNativeFeedback
-                  onPress={() => {
-                    log({
-                      action: "open_patreon",
-                    });
-                    Linking.openURL("https://www.patreon.com/languagetransfer");
-                  }}
-                  useForeground={true}
-                >
-                  <View style={styles.additionalButtonInner}>
-                    <Text style={styles.additionalButtonText}>
-                      Contribute on Patreon
-                    </Text>
-                    <Icon name="patreon" />
-                  </View>
-                </TouchableNativeFeedback>
-              </View>
-
-              <View style={styles.additionalButton}>
-                <TouchableNativeFeedback
-                  onPress={() => {
-                    log({
-                      action: "visit_donate_page",
-                    });
-                    Linking.openURL(
-                      "https://www.languagetransfer.org/donations"
-                    );
-                  }}
-                  useForeground={true}
-                >
-                  <View style={styles.additionalButtonInner}>
-                    <Text style={styles.additionalButtonText}>
-                      Make a one-time contribution to Language Transfer
-                    </Text>
-                    <Icon name="donate" />
-                  </View>
-                </TouchableNativeFeedback>
-              </View>
-            </>
-          )}
+          <Text style={[styles.bodyText, styles.bodyTextAboveButton]}>
+            First published by the Esperanto Association of Britain over 50 years ago
+            and used and enjoyed since then by countless students in an audio format with accompanying booklets, the
+            course is now available as a fully featured app. This allows
+            you to participate fully, wherever you are in the world. Just
+            engage, pause, think and answer out loud, and the rest will take
+            care of itself.
+          </Text>
 
           <View style={styles.additionalButton}>
             <TouchableNativeFeedback
@@ -134,99 +81,155 @@ const AboutScreen = () => {
                 log({
                   action: "visit_website",
                 });
-                Linking.openURL("https://www.languagetransfer.org/about");
+                Linking.openURL("https://www.esperanto.org.uk");
               }}
               useForeground={true}
             >
               <View style={styles.additionalButtonInner}>
                 <Text style={styles.additionalButtonText}>
-                  Visit languagetransfer.org
+                  Visit esperanto.org.uk
                 </Text>
                 <Icon name="link" />
               </View>
             </TouchableNativeFeedback>
           </View>
-
-          <View style={styles.additionalButton}>
-            <TouchableNativeFeedback
-              onPress={() => {
-                log({
-                  action: "open_substack",
-                });
-                Linking.openURL("https://languagetransfer.substack.com/");
-              }}
-              useForeground={true}
-            >
-              <View style={styles.additionalButtonInner}>
-                <Text style={styles.additionalButtonText}>Substack blog</Text>
-                <Icon name="blog" />
-              </View>
-            </TouchableNativeFeedback>
-          </View>
         </SectionCard>
 
-        <SectionCard title="Privacy">
+        <SectionCard title="How to use this course">
           <Text style={styles.bodyText}>
-            We collect anonymous usage information so we can learn about how
-            best to improve the app. You’re welcome to opt out of data
-            collection in the Settings pane of this app.
+            If you like, familiarise yourself with the contents of each lesson
+            before listening to the recording; however, many people think it
+            wiser to listen first, and to turn to the notes only afterwards.
           </Text>
           <Text style={styles.bodyText}>
-            This usage information does not identify you or single you out in
-            any way; we do not (and cannot) sell your personal information.
-            Here’s what we do track:
+            After you&apos;ve heard each lesson, follow this routine:
           </Text>
 
           <Text style={styles.listElement}>
-            {"\u2022"} Your timezone and country, which is derived from your IP
-            address.
+            {"\u2022"} <B>read through the notes and vocabulary</B>
           </Text>
           <Text style={styles.listElement}>
-            {"\u2022"} Your device operating system and operating system
-            version, as well as the version of the LT app you’re using.
+            {"\u2022"} <B>read over the text of the dialogue</B>
           </Text>
           <Text style={styles.listElement}>
-            {"\u2022"} The actions you take within the app. We remember your
-            device uniquely (without any identifying information) so we can
-            understand users’ behavior across multiple sessions using the app.
+            {"\u2022"} refer backwards and forwards between them as necessary,
+            making sure you understand everything in the text
           </Text>
-
-          <Text style={styles.bodyText}>
-            We do not store your IP address permanently, though it may be kept
-            for a short period after your usage of the app so that we can
-            protect our servers from malicious use.
+          <Text style={styles.listElement}>
+            {"\u2022"} play the recording over repeatedly <I>without</I>{" "}
+            looking at the book, until you know it well
           </Text>
-
-          <Text style={styles.bodyText}>
-            If you choose to contact us or report a problem from within the app,
-            we may retain any information you send to us indefinitely so that we
-            can take action on your feedback.
+          <Text style={styles.listElement}>
+            {"\u2022"} if possible, act out the dialogue with a friend
+          </Text>
+          <Text style={styles.listElement}>
+            {"\u2022"} <B>do the exercises</B>
+          </Text>
+          <Text style={styles.listElement}>
+            {"\u2022"} listen to the lesson once more.
           </Text>
         </SectionCard>
 
-        <SectionCard title="LT App">
+        <SectionCard title="Sounds &amp; Letters">
           <Text style={styles.bodyText}>
-            To help us understand where pauses occur in the course audio, we use
-            this app to collect data about listening patterns (for example,
-            where users are most likely to pause the course audio). By using the
-            Thinking Method, you’re helping us learn about how real people
-            engage with the Language Transfer course audio. To learn more about
-            what data we collect (and about how you can turn off this data
-            collection), see the ‘Privacy’ section on this About page.
+            Model your pronunciation on the voices you hear in the lessons.
+            Esperanto has acquired a more-or-less standard international
+            pronunciation; it is advisable to avoid too much of an
+            &quot;English accent&quot;.
+          </Text>
+          <Text style={styles.bodyText}>
+            The vowels /a, e, i, o, u/ are monophthongs (pure vowels). The
+            diphthongs /ej, aj, oj, uj/ start at /e a o u/ respectively and
+            glide towards an i-quality; /eŭ, aŭ/ start at /e a/ and glide
+            towards an u-quality. All vowels should be clearly sounded.
+          </Text>
+          <Text style={styles.bodyText}>
+            Word stress is without exception on the last but one syllable, i.e.
+            on the penultimate vowel.
+          </Text>
+          <Text style={styles.bodyText}>
+            The consonants /p, t, k, b, d, f, v, s, z, m, n, h/ are as in
+            English (but don&apos;t use a glottal stop for /t/; /p t k/ are
+            best unaspirated). Spelling <I>g</I> means a &quot;hard&quot; /g/,{" "}
+            <I>ĝ</I> a &quot;soft&quot; one like English <I>j</I>. <I>C</I>{" "}
+            stands for an affricate like <I>ts</I>, <I>ĉ</I> for one like
+            English <I>ch</I> in <I>child</I>. Similarly, <I>ŝ</I> is like
+            English <I>sh</I>; <I>ĵ</I> denotes the corresponding voiced sound,
+            as in <I>measure</I>. The rare <I>ĥ</I> is a voiceless velar
+            fricative, as in <I>loch</I>. A trill or tap is best for /r/; a
+            &quot;clear&quot; lateral for /l/ — be careful not to omit them
+            after vowels. <I>J</I> corresponds to English <I>y</I>; <I>jes</I>{" "}
+            has the same sound and meaning as English <I>yes</I>.
+          </Text>
+          <Text style={styles.bodyText}>
+            The correspondence between sound and spelling is exact in
+            Esperanto. Seeing the written form of a word, you can know with
+            certainty the way to pronounce it.
+          </Text>
+        </SectionCard>
+
+        <SectionCard title="Credits">
+          <Text style={styles.bodyText}>
+            First published 1974{"\n"}
+            Reprinted 1976, 1977{"\n"}
+            Revised 1984{"\n"}
+            Reprinted 1992, 2005{"\n"}
+            E-book format 2020{"\n"}
+            App format 2026
+          </Text>
+
+          <Text style={styles.bodyText}>Course written by John C. Wells</Text>
+
+          <Text style={styles.bodyText}>
+            Additional exercises by R. McDermott{"\n"}
+            and John C. Wells
+          </Text>
+
+          <Text style={styles.bodyText}>
+            Lessons based on <I>Esperanto for Beginners</I> by Montagu C. Butler
+          </Text>
+
+          <Text style={styles.bodyText}>
+            Dialogues written by Daphne Lister, Don Lord, Neil Salvesen
+          </Text>
+
+          <Text style={styles.bodyText}>Print design by Peter Oliver</Text>
+
+          <Text style={styles.bodyText}>App format by Gabriel Beecham</Text>
+
+          <Text style={styles.bodyText}>
+            <I>Helena</I> — Irene Schilperoord{"\n"}
+            <I>Petro</I> — Karlo Bartošik{"\n"}
+            <I>Teacher</I> — John C. Wells
+          </Text>
+
+          <Text style={styles.bodyText}>
+            Studio production by Peter Schilperoord{"\n"}
+            Sound recording by Acorn Audio Service
+          </Text>
+
+          <Text style={styles.bodyText}>
+            First published by <B>Group Five</B>
+            {"\n"}
+            <I>Esperanto on Radio and Television</I>
+          </Text>
+
+          <Text style={styles.bodyText}>
+            Copyright © 1974, 1984, 1992, 2020, 2026 Group Five and Esperanto-Asocio de Britio
           </Text>
 
           <Text style={[styles.bodyText, styles.bodyTextAboveButton]}>
-            If you have any feedback that you’d like to share about how we can
-            improve the Language Transfer app, feel free to send an email:
+            If you have any feedback that you&apos;d like to share about how we
+            can improve the Jen Nia Mondo app, feel free to send an email:
           </Text>
 
           <View style={styles.additionalButton}>
             <TouchableNativeFeedback
               onPress={() => {
                 Linking.openURL(
-                  "mailto:info@languagetransfer.org" +
+                  "mailto:eab@esperanto.org.uk" +
                     `?subject=${encodeURIComponent(
-                      "Feedback about the Language Transfer app"
+                      "Feedback about the Jen Nia Mondo app"
                     )}`
                 );
               }}
@@ -240,21 +243,19 @@ const AboutScreen = () => {
           </View>
 
           <Text style={styles.bodyText}>
-            The Language Transfer app is free, open-source software. You can
-            find its source code on GitHub:
+            The Jen Nia Mondo app is built on the Language Transfer app
+            platform, which is free, open-source software. You can find its
+            source code on GitHub:
           </Text>
           <View
-            style={[
-              styles.additionalButton,
-              styles.additionalButtonExtraMargin,
-            ]}
+            style={[styles.additionalButton, styles.additionalButtonExtraMargin]}
           >
             <TouchableNativeFeedback
               onPress={() => {
                 log({
                   action: "open_github",
                 });
-                Linking.openURL("https://www.github.com/language-transfer");
+                Linking.openURL("https://www.github.com/kwekubo/jnm-app");
               }}
               useForeground={true}
             >
@@ -277,11 +278,7 @@ const AboutScreen = () => {
           </View>
 
           <Text style={styles.bodyText}>
-            The app’s core maintainers are Timothy&nbsp;J.&nbsp;Aveni and
-            Josh&nbsp;Fayer.
-          </Text>
-          <Text style={styles.bodyText}>
-            This is version {appVersion} of the Language Transfer app.
+            This is version {appVersion} of the Jen Nia Mondo app.
           </Text>
         </SectionCard>
       </View>
@@ -326,7 +323,12 @@ const styles = StyleSheet.create({
   bodyTextAboveButton: {
     marginBottom: 18,
   },
-
+  italic: {
+    fontStyle: "italic",
+  },
+  bold: {
+    fontWeight: "bold",
+  },
   listElement: {
     fontSize: 17,
     marginLeft: 30,
@@ -334,7 +336,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     lineHeight: 24,
   },
-
   additionalButton: {
     marginBottom: 20,
     borderRadius: 12,

@@ -131,25 +131,7 @@ const SettingsScreen = () => {
           await setPreference(PreferenceDownloadQuality, newValue);
         }}
             />
-            <SettingRow
-        title="Allow data collection"
-        description={
-          "Language Transfer records anonymous information about how people " +
-          "are using this app, which helps us understand what to prioritize " +
-          "when we're thinking about how to make the app better. We never " +
-          "store your name or any personal data about you. Still, if you'd " +
-          "like us to stop collecting information about how you use Language " +
-          "Transfer, you can turn that off here."
-        }
-        accessory={<Checkbox checked={settings.allowDataCollection} />}
-        onPress={async () => {
-          await setPreference(
-            PreferenceAllowDataCollection,
-            !settings.allowDataCollection
-          );
-          await deleteMetricsToken();
-        }}
-      />
+            
     </ScrollView>
   );
 };

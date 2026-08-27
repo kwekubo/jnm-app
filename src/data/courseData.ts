@@ -146,7 +146,23 @@ const fetchAndCacheCourseIndex = async (): Promise<CourseIndex> => {
   return validated;
 };
 
+// In development the content server changes constantly, so the 7-day cache
+// below would hide fresh lessons until it expired. Fetch the index from the
+// network once per app session in dev (falling back to the cache if the
+// server is unreachable); production keeps the offline-friendly behaviour.
+let devIndexFetchedThisSession = false;
+
 const ensureCourseIndex = async (forceRemote = false): Promise<CourseIndex> => {
+  if (__DEV__ && !forceRemote && !devIndexFetchedThisSession) {
+    try {
+      const latest = await fetchAndCacheCourseIndex();
+      devIndexFetchedThisSession = true;
+      return latest;
+    } catch {
+      // Server not reachable right now — fall through to the caches below.
+    }
+  }
+
   if (!forceRemote && cachedInMemoryCourseIndex) {
     return cachedInMemoryCourseIndex;
   }

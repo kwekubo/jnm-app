@@ -36,7 +36,7 @@ const DrawerContent = (props: DrawerContentComponentProps) => {
             source={logo}
             style={styles.headerImage}
             resizeMode="contain"
-            accessibilityLabel="Language Transfer"
+            accessibilityLabel="Jen Nia Mondo"
           />
         </View>
 
@@ -49,7 +49,7 @@ const DrawerContent = (props: DrawerContentComponentProps) => {
                 color="#555"
                 style={styles.menuItemIcon}
               />
-              <Text style={styles.menuItemText}>All Languages</Text>
+              <Text style={styles.menuItemText}>Home</Text>
             </View>
           )}
           onPress={() => navigateTo("/")}

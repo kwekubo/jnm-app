@@ -481,6 +481,9 @@ const quality = await getPreferenceWithDefault(PreferenceDownloadQuality);
       if (content) {
         lessonPointers.push(content);
       }
+      for (const ill of CourseData.getLessonIllustrations(course, lesson)) {
+        lessonPointers.push(ill);
+      }
       return lessonPointers;
     });
 
@@ -512,6 +515,9 @@ async unrequestDownload(course: CourseName, lesson: number) {
       const content = CourseData.getLessonContentPointer(course, lesson);
       if (content) {
         extras.push(content);
+      }
+      for (const ill of CourseData.getLessonIllustrations(course, lesson)) {
+        extras.push(ill);
       }
       return await DownloadManager.unrequestDownloads([pointer, ...extras]);
     },

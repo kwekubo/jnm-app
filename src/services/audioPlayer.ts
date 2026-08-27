@@ -207,7 +207,7 @@ const tracks: LessonTrack[] = [];
       url: uri as LessonTrack["url"],
       contentType: CourseData.getLessonMimeType(course, lessonNumber, quality),
       title: CourseData.getLessonTitle(course, lessonNumber),
-      artist: "Language Transfer",
+      artist: "Jen Nia Mondo",
       artwork,
       duration: CourseData.getLessonDuration(course, lessonNumber),
       course,
@@ -229,7 +229,7 @@ const tracks: LessonTrack[] = [];
         url: dialogueUri as LessonTrack["url"],
         contentType: dialoguePointer.mimeType,
         title: `${CourseData.getLessonTitle(course, lessonNumber)} - Dialogo`,
-        artist: "Language Transfer",
+        artist: "Jen Nia Mondo",
         artwork,
         duration: dialogue.duration,
         course,
@@ -494,11 +494,9 @@ const activeKind: "lesson" | "dialogue" =
   const resolvedDuration =
     activeKind === "dialogue"
       ? progress.duration || activeTrack?.duration || 0
-      : duration > 0
-        ? duration
-        : isCurrentLessonActive
-          ? progress.duration
-          : 0;
+      : isCurrentLessonActive && progress.duration > 0
+        ? progress.duration
+        : duration;
 
   return {
     activeKind,

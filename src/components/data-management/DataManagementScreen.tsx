@@ -23,7 +23,7 @@ const sections: {
 }[] = [
   {
     key: "refresh",
-    title: (courseTitle: string) => `Refresh ${courseTitle} metadata`,
+    title: (courseTitle: string) => `Refresh course metadata`,
     description:
       "This will check to see if new lessons have been added. " +
       "If you're having trouble downloading tracks, try this.",
@@ -36,7 +36,7 @@ const sections: {
   },
   {
     key: "progress",
-    title: (courseTitle: string) => `Clear ${courseTitle} progress`,
+    title: (courseTitle: string) => `Clear course progress`,
     description:
       "If you've marked any lessons as finished, this will mark them all unfinished " +
       "and start you back at Lesson 1. It will also forget where you left off in each track.",
@@ -51,7 +51,7 @@ const sections: {
   },
   {
     key: "finished-downloads",
-    title: (courseTitle: string) => `Delete finished ${courseTitle} downloads`,
+    title: (courseTitle: string) => `Delete finished course downloads`,
     description:
       "If you have downloaded lessons that you've finished listening to, " +
       "this will delete those downloads.",
@@ -68,7 +68,7 @@ const sections: {
   },
   {
     key: "all-downloads",
-    title: (courseTitle: string) => `Delete all ${courseTitle} downloads`,
+    title: (courseTitle: string) => `Delete all course downloads`,
     description:
       "This will delete all lessons you've downloaded.",
     action: async (course: CourseName) => {
@@ -83,7 +83,7 @@ const sections: {
   },
   {
     key: "all-data",
-    title: (courseTitle: string) => `Delete all ${courseTitle} data`,
+    title: (courseTitle: string) => `Delete all course data`,
     description:
       "This will clear your progress, delete all downloads, " +
       "and remove its metadata from your device.",

@@ -13,4 +13,4 @@
  * the machine's LAN address, which `npx expo start` prints.)
  */
 export const COURSE_INDEX_URL =
-  "http://192.168.1.13:3000/eab-courses.json";
+  "http://192.168.0.3:3000/eab-courses.json";

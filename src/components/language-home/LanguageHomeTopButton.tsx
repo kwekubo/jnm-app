@@ -142,7 +142,7 @@ const LanguageHomeTopButton = ({ course }: Props) => {
       {hasPrompt ? (
         <View style={styles.ratingBanner}>
           <Text style={styles.ratingPrompt}>
-            Help people find Language Transfer!
+            Help people find Jen Nia Mondo!
           </Text>
           <Pressable
             style={styles.ratingButton}
@@ -159,7 +159,7 @@ const LanguageHomeTopButton = ({ course }: Props) => {
                 time,
               }).then();
               Linking.openURL(
-                "https://play.google.com/store/apps/details?id=org.languagetransfer"
+                "https://play.google.com/store/apps/details?id=uk.org.esperanto"
               );
             }}
           >
