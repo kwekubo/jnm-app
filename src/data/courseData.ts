@@ -158,8 +158,9 @@ const ensureCourseIndex = async (forceRemote = false): Promise<CourseIndex> => {
       const latest = await fetchAndCacheCourseIndex();
       devIndexFetchedThisSession = true;
       return latest;
-    } catch {
-      // Server not reachable right now — fall through to the caches below.
+    } catch (error) {
+      // Fall through to the caches below — but say so, loudly, in Metro.
+      console.warn("Course index fetch failed; using cached copy", error);
     }
   }
 
@@ -523,6 +524,13 @@ const CourseData = {
   /** Pointer to the lesson's structured written content, if published. */
   getLessonContentPointer(course: CourseName, lesson: number) {
     return CourseData.getLessonData(course, lesson).content;
+  },
+
+  /** Illustration pointers listed in the course manifest (may be empty;
+   *  in-app artwork loads by URL via contentAssets, so this exists mainly
+   *  for the download manager's bookkeeping). */
+  getLessonIllustrations(course: CourseName, lesson: number) {
+    return CourseData.getLessonData(course, lesson).illustrations ?? [];
   },
 
   getLessonSizeInBytes(

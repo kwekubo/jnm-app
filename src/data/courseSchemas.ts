@@ -84,7 +84,10 @@ export const courseIndexEntrySchema = z.object({
 });
 
 export const allCoursesSchema = z.object({
-  buildVersion: z.literal(2),
+  // Minimum-bound, not a literal: the counter may be bumped on regeneration
+  // without a format change, and a pinned literal here once rejected a
+  // perfectly good index — silently stranding the app on a stale cache.
+  buildVersion: z.number().int().gte(2),
   casBaseURL: z.string(),
   courses: z.array(courseIndexEntrySchema),
 });

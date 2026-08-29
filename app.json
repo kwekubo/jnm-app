@@ -15,7 +15,7 @@
           "audio"
         ]
       },
-      "bundleIdentifier": "uk.org.esperanto.jnm"
+      "bundleIdentifier": "app.jenniamondo"
     },
     "android": {
       "versionCode": 1,
