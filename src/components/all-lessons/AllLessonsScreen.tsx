@@ -25,6 +25,10 @@ import {
 } from "@/src/storage/persistence";
 import type { CourseName } from "@/src/types";
 
+// Jen Nia Mondo is published in two parts; the booklet's second part
+// begins at Leciono 13.
+const PART_2_STARTS_AT = 13;
+
 const AllLessonsScreen = () => {
   const params = useLocalSearchParams<{ course: string }>();
   const course = (params.course ?? "jnm") as CourseName;
@@ -118,7 +122,16 @@ const AllLessonsScreen = () => {
         <FlatList
           data={indices}
           keyExtractor={(lesson) => String(lesson)}
-          renderItem={({ item }) => <LessonRow lesson={item} />}
+          renderItem={({ item }) => (
+            <>
+              {item === PART_2_STARTS_AT ? (
+                <View style={styles.partDivider}>
+                  <Text style={styles.partDividerText}>Parto 2</Text>
+                </View>
+              ) : null}
+              <LessonRow lesson={item} />
+            </>
+          )}
         />
       </View>
       <View style={styles.bottomBar}>
@@ -146,6 +159,20 @@ const AllLessonsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  partDivider: {
+    paddingVertical: 13,
+    alignItems: "center",
+    backgroundColor: "#f7f7f7",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  partDividerText: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 3,
+    color: "#888",
+    textTransform: "uppercase",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",

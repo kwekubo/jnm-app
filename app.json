@@ -2,24 +2,23 @@
   "expo": {
     "name": "Jen Nia Mondo",
     "slug": "jnm-app",
-    "version": "2.0.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "languagetransfer",
+    "scheme": "jnm",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
         "UIBackgroundModes": [
-          "audio",
           "audio"
         ]
       },
-      "bundleIdentifier": "org.languagetransfer"
+      "bundleIdentifier": "uk.org.esperanto.jnm"
     },
     "android": {
-      "versionCode": 12,
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -53,7 +52,7 @@
         "expo-build-properties",
         {
           "android": {
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": false
           }
         }
       ]

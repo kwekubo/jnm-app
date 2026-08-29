@@ -101,37 +101,6 @@ const SettingsScreen = () => {
           );
         }}
             />
-            <SettingRow
-        title="Streaming quality"
-        description={
-          "When streaming lessons directly from the server, should we use " +
-          "high- or low-quality audio? High-quality audio uses about 1 " +
-          "megabyte per minute. Low-quality audio uses about one third of a " +
-          "megabyte per minute."
-        }
-        accessory={
-          <Text style={styles.valueText}>{settings.streamQuality}</Text>
-        }
-        onPress={async () => {
-          const newValue = settings.streamQuality === "high" ? "low" : "high";
-          await setPreference(PreferenceStreamQuality, newValue);
-        }}
-            />
-            <SettingRow
-        title="Download quality"
-        description={
-          "When downloading lessons to your device, should we use high- or " +
-          "low-quality audio?"
-        }
-        accessory={
-          <Text style={styles.valueText}>{settings.downloadQuality}</Text>
-        }
-        onPress={async () => {
-          const newValue = settings.downloadQuality === "high" ? "low" : "high";
-          await setPreference(PreferenceDownloadQuality, newValue);
-        }}
-            />
-            
     </ScrollView>
   );
 };

@@ -83,7 +83,7 @@ const ListenBody = () => {
 
   const reportMailto = useMemo(() => {
     return (
-      "mailto:info@languagetransfer.org" +
+      "mailto:eab@esperanto.org.uk" +
       `?subject=${encodeURIComponent(
         `Feedback about ${CourseData.getCourseFullTitle(course)}`
       )}` +

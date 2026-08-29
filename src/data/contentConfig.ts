@@ -1,16 +1,10 @@
 /**
- * Where the app finds its course index. The index points at the course
- * manifest (jnm-meta.json), which in turn points at audio and content
- * objects in content-addressed storage under the same base URL.
- *
- * PLACEHOLDER: EAB hosting does not exist yet. Until it does, point this
- * at wherever the published content folder is served. During development
- * that can simply be your own computer, e.g.:
- *
- *   npx serve dist        →   http://<your-LAN-IP>:3000/eab-courses.json
- *
- * (A phone running Expo Go cannot see your computer's "localhost"; use
- * the machine's LAN address, which `npx expo start` prints.)
+ * Where the app finds its course index. PRODUCTION — the app's permanent
+ * home at jenniamondo.app. With this file installed, the app works
+ * anywhere in the world with your PC's servers off; the old Steps 0-2 of
+ * the restart ritual are retired. To develop against a local content
+ * server again, point this temporarily back at
+ * http://<your-LAN-IP>:3000/eab-courses.json.
  */
 export const COURSE_INDEX_URL =
-  "http://192.168.0.3:3000/eab-courses.json";
+  "https://jenniamondo.app/files/eab-courses.json";
