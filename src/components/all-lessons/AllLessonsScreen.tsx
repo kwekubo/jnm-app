@@ -25,13 +25,17 @@ import {
 } from "@/src/storage/persistence";
 import type { CourseName } from "@/src/types";
 
-// Jen Nia Mondo is published in two parts; the booklet's second part
-// begins at Leciono 13.
-const PART_2_STARTS_AT = 13;
-
 const AllLessonsScreen = () => {
   const params = useLocalSearchParams<{ course: string }>();
   const course = (params.course ?? "jnm") as CourseName;
+
+  // The "Parto 2" divider sits before the first lesson the manifest marks
+  // as part 2. List items are zero-based lesson indices, so nothing here
+  // assumes any numbering convention — the manifest's part field decides.
+  const isFirstOfPart2 = (index: number) =>
+    index > 0 &&
+    CourseData.getLessonPart(course, index) === 2 &&
+    CourseData.getLessonPart(course, index - 1) === 1;
   useStatusBarStyle("white", "dark-content");
   const [metadataReady, setMetadataReady] = useState(() =>
     CourseData.isCourseMetadataLoaded(course)
@@ -124,7 +128,7 @@ const AllLessonsScreen = () => {
           keyExtractor={(lesson) => String(lesson)}
           renderItem={({ item }) => (
             <>
-              {item === PART_2_STARTS_AT ? (
+              {isFirstOfPart2(item) ? (
                 <View style={styles.partDivider}>
                   <Text style={styles.partDividerText}>Parto 2</Text>
                 </View>

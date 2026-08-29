@@ -10,8 +10,6 @@ import {
 } from "react-native";
 
 import {
-  deleteMetricsToken,
-  PreferenceAllowDataCollection,
   PreferenceAutoDelete,
   PreferenceDownloadOnlyOnWifi,
   PreferenceDownloadQuality,
@@ -25,7 +23,6 @@ type SettingsState = {
   streamQuality: "high" | "low";
   downloadQuality: "high" | "low";
   downloadOnlyOnWifi: boolean;
-  allowDataCollection: boolean;
 };
 
 type NullableSettingsState = {
@@ -41,13 +38,11 @@ const SettingsScreen = () => {
     streamQuality,
     downloadQuality,
     downloadOnlyOnWifi,
-    allowDataCollection,
   ] = [
     usePreference(PreferenceAutoDelete),
     usePreference(PreferenceStreamQuality),
     usePreference(PreferenceDownloadQuality),
     usePreference(PreferenceDownloadOnlyOnWifi),
-    usePreference(PreferenceAllowDataCollection),
   ];
 
   const settings: NullableSettingsState = {
@@ -55,7 +50,6 @@ const SettingsScreen = () => {
     streamQuality,
     downloadQuality,
     downloadOnlyOnWifi,
-    allowDataCollection,
   };
 
   // TODO - this flickers the screen while reloading. consider SWR

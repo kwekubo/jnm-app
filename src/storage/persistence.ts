@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { v4 as uuid } from "uuid";
 
 import { CourseDownloadManager } from "@/src/services/downloadManager";
 import type { CourseName, Progress } from "@/src/types";
@@ -149,26 +148,6 @@ export const deleteProgressForCourse = async (
   ]);
 };
 
-export const getMetricsToken = async (): Promise<string> => {
-  const stored = await AsyncStorage.getItem("@metrics/user-token");
-  if (stored) {
-    return stored;
-  }
-
-  const token = uuid({
-    // do not need crypto random bytes here
-    random: Uint8Array.from({ length: 16 }, () =>
-      Math.floor(Math.random() * 256)
-    ),
-  });
-  await AsyncStorage.setItem("@metrics/user-token", token);
-  return token;
-};
-
-export const deleteMetricsToken = async (): Promise<void> => {
-  await AsyncStorage.removeItem("@metrics/user-token");
-};
-
 export const getPreferenceWithDefault = async <T>(
   preference: Preference<T>
 ): Promise<T> => {
@@ -255,12 +234,6 @@ export const PreferenceDownloadQuality: Preference<
 
 export const PreferenceDownloadOnlyOnWifi: Preference<boolean> = {
   name: "download-only-on-wifi",
-  schema: z.boolean(),
-  defaultValue: true,
-};
-
-export const PreferenceAllowDataCollection: Preference<boolean> = {
-  name: "allow-data-collection",
   schema: z.boolean(),
   defaultValue: true,
 };
